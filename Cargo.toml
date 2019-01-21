@@ -1,0 +1,8 @@
+[package]
+name = "rusty"
+version = "0.1.0"
+authors = ["Pieter Kokx <pieter@kokx.nl>"]
+edition = "2018"
+
+[dependencies]
+irc = "0.13.6"
