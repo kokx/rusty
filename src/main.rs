@@ -5,21 +5,40 @@ extern crate time;
 
 use irc::client::prelude::*;
 
-use tokio::timer::Delay;
-//use futures::{Future, Async, Poll};
-use futures::Future;
+use tokio::timer::Interval;
+use futures::{stream, Stream};
 
-//use std::fmt;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-fn send_every_minute(client : IrcClient, reactor: &mut IrcReactor) {
-    let when = Instant::now() + Duration::from_millis(1000);
-    let task = Delay::new(when)
-        .and_then(move |_| {
-            client.send_privmsg("#test", "Hi there!");
+
+fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
+    let interval = Interval::new_interval(Duration::from_millis(1000))
+        .map_err(|_e| ());
+
+    stream::unfold((), |_| {
+        Some(Ok((time::now().to_local(), ())))
+    }).zip(interval)
+        .map(|(cur, _)| cur)
+}
+
+fn pwnage_wakeup(client: IrcClient, reactor: &mut IrcReactor) {
+    let task = timestream()
+        .filter(|cur| cur.tm_hour == 0 && cur.tm_min == 0 && cur.tm_sec == 0)
+        .for_each(move |_curtime| {
+            client.send_privmsg("PWNAGE", "Wake up!").expect("Message couldn't send");
             Ok(())
-        })
-        .map_err(|e| panic!("delay errored; err={:?}", e));
+        });
+
+    reactor.inner_handle().spawn(task);
+}
+
+fn pipo_wakeup(client: IrcClient, reactor: &mut IrcReactor) {
+    let task = timestream()
+        .filter(|cur| (cur.tm_hour == 15 || cur.tm_hour == 16 || cur.tm_hour == 10) && cur.tm_min == 0 && cur.tm_sec == 0)
+        .for_each(move |_curtime| {
+            client.send_privmsg("Pipo", "Ik ben niet Pipo").expect("Message couldn't send");
+            Ok(())
+        });
 
     reactor.inner_handle().spawn(task);
 }
@@ -36,16 +55,19 @@ fn main() {
     let client = reactor.prepare_client_and_connect(&config).unwrap();
     client.identify().unwrap();
 
-    send_every_minute(client.clone(), &mut reactor);
+    pwnage_wakeup(client.clone(), &mut reactor);
+    pipo_wakeup(client.clone(), &mut reactor);
 
     reactor.register_client_with_handler(client, |client, irc_msg| {
         print!("Incoming: {}", irc_msg);
         if let Command::PRIVMSG(channel, message) = irc_msg.command {
             if message.contains(client.current_nickname()) {
                 if message.contains("!quit") {
-                    client.send_quit(format!("Screw you guys, I'm going home"));
+                    client.send_quit(format!("Screw you guys, I'm going home")).expect("Message couldn't be sent.");
+                } else if message.contains("!time") {
+                    client.send_privmsg(&channel, format!("Current time: {}", time::now().to_local().rfc822())).expect("Message couldn't be sent.");
                 } else {
-                    client.send_privmsg(&channel, "Ja?");
+                    client.send_privmsg(&channel, "Ja?").expect("Message couldn't be sent.");
                 }
             }
         }
