@@ -1,0 +1,4 @@
+nickname = "rusty"
+server = "irc.gewis.nl"
+channels = ["#rusty"]
+user_info = "Don't annoy me."

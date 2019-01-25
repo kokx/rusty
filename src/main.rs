@@ -44,13 +44,7 @@ fn pipo_wakeup(client: IrcClient, reactor: &mut IrcReactor) {
 }
 
 fn main() {
-    let config = Config {
-        nickname: Some("rusty".to_owned()),
-        server: Some("irc.gewis.nl".to_owned()),
-        channels: Some(vec!["#test".to_owned()]),
-        ..Config::default()
-    };
-
+    let config = Config::load("irc.toml").unwrap();
     let mut reactor = IrcReactor::new().unwrap();
     let client = reactor.prepare_client_and_connect(&config).unwrap();
     client.identify().unwrap();
