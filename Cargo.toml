@@ -6,3 +6,6 @@ edition = "2018"
 
 [dependencies]
 irc = "0.13.6"
+tokio = "0.1"
+futures = "0.1"
+time = "0.1"
