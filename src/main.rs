@@ -21,26 +21,22 @@ fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
         .map(|(cur, _)| cur)
 }
 
-fn pwnage_wakeup(client: IrcClient, reactor: &mut IrcReactor) {
-    let task = timestream()
+fn pwnage_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()> {
+    timestream()
         .filter(|cur| cur.tm_hour == 0 && cur.tm_min == 0 && cur.tm_sec == 0)
         .for_each(move |_curtime| {
             client.send_privmsg("PWNAGE", "Wake up!").expect("Message couldn't send");
             Ok(())
-        });
-
-    reactor.inner_handle().spawn(task);
+        })
 }
 
-fn pipo_wakeup(client: IrcClient, reactor: &mut IrcReactor) {
-    let task = timestream()
+fn pipo_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()> {
+    timestream()
         .filter(|cur| (cur.tm_hour == 15 || cur.tm_hour == 16 || cur.tm_hour == 10) && cur.tm_min == 0 && cur.tm_sec == 0)
         .for_each(move |_curtime| {
             client.send_privmsg("Pipo", "Ik ben niet Pipo").expect("Message couldn't send");
             Ok(())
-        });
-
-    reactor.inner_handle().spawn(task);
+        })
 }
 
 fn main() {
@@ -49,13 +45,13 @@ fn main() {
     let client = reactor.prepare_client_and_connect(&config).unwrap();
     client.identify().unwrap();
 
-    pwnage_wakeup(client.clone(), &mut reactor);
-    pipo_wakeup(client.clone(), &mut reactor);
+    reactor.inner_handle().spawn(pwnage_wakeup(client.clone()));
+    reactor.inner_handle().spawn(pipo_wakeup(client.clone()));
 
     reactor.register_client_with_handler(client, |client, irc_msg| {
         print!("Incoming: {}", irc_msg);
         if let Command::PRIVMSG(channel, message) = irc_msg.command {
-            if message.contains(client.current_nickname()) {
+            if message.starts_with(client.current_nickname()) {
                 if message.contains("!quit") {
                     client.send_quit(format!("Screw you guys, I'm going home")).expect("Message couldn't be sent.");
                 } else if message.contains("!time") {
