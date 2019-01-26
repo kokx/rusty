@@ -33,7 +33,7 @@ fn pwnage_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = (
 
 fn pipo_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()> {
     timestream()
-        .filter(|cur| (cur.tm_hour == 15 || cur.tm_hour == 16 || cur.tm_hour == 10) && cur.tm_min == 0 && cur.tm_sec == 0)
+        .filter(|cur| (cur.tm_hour == 10 || cur.tm_hour == 12 || cur.tm_hour == 14 || cur.tm_hour == 16) && cur.tm_min == 0 && cur.tm_sec == 0)
         .for_each(move |_curtime| {
             client.send_privmsg("Pipo", "Ik ben niet Pipo").expect("Message couldn't send");
             Ok(())
