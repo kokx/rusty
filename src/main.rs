@@ -62,7 +62,7 @@ fn main() {
                         client.send_privmsg(&response_target, format!("Current time: {}", time::now().to_local().rfc822())).expect("Message couldn't be sent.");
                     } else if message.contains("!op") && pref.ends_with("kokx@kokx.org") {
                         let modes = [irc::proto::Mode::plus(irc::proto::ChannelMode::Oper, Some("kokx"))];
-                        client.send_mode(&response_target, &modes);
+                        client.send_mode(&response_target, &modes).expect("Problem with making owner op");
                     } else {
                         client.send_privmsg(&response_target, "Ja?").expect("Message couldn't be sent.");
                     }
