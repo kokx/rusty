@@ -51,16 +51,24 @@ fn main() {
 
     reactor.register_client_with_handler(client, |client, irc_msg| {
         print!("Incoming: {}", irc_msg);
-        if let Command::PRIVMSG(channel, message) = irc_msg.command {
-            if message.starts_with(client.current_nickname()) {
-                if message.contains("!quit") {
-                    client.send_quit(format!("Screw you guys, I'm going home")).expect("Message couldn't be sent.");
-                } else if message.contains("!time") {
-                    client.send_privmsg(&channel, format!("Current time: {}", time::now().to_local().rfc822())).expect("Message couldn't be sent.");
-                } else {
-                    client.send_privmsg(&channel, "Ja?").expect("Message couldn't be sent.");
+        match &irc_msg.command {
+            Command::PRIVMSG(_channel, message) => {
+                if message.starts_with(client.current_nickname()) {
+                    let pref = irc_msg.clone().prefix.unwrap();
+                    let response_target = irc_msg.response_target().unwrap();
+                    if message.contains("!quit") {
+                        client.send_quit(format!("Screw you guys, I'm going home")).expect("Message couldn't be sent.");
+                    } else if message.contains("!time") {
+                        client.send_privmsg(&response_target, format!("Current time: {}", time::now().to_local().rfc822())).expect("Message couldn't be sent.");
+                    } else if message.contains("!op") && pref.ends_with("kokx@kokx.org") {
+                        let modes = [irc::proto::Mode::plus(irc::proto::ChannelMode::Oper, Some("kokx"))];
+                        client.send_mode(&response_target, &modes);
+                    } else {
+                        client.send_privmsg(&response_target, "Ja?").expect("Message couldn't be sent.");
+                    }
                 }
-            }
+            },
+            _ => ()
         }
         Ok(())
     });
