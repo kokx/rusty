@@ -26,6 +26,7 @@ fn pwnage_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = (
         .filter(|cur| cur.tm_hour == 0 && cur.tm_min == 0 && cur.tm_sec == 0)
         .for_each(move |_curtime| {
             client.send_privmsg("PWNAGE", "Wake up!").expect("Message couldn't send");
+            client.send_privmsg("kokx", "Test Wake up!").expect("Message couldn't send");
             Ok(())
         })
 }
