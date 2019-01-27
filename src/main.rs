@@ -56,20 +56,29 @@ fn main() {
         print!("Incoming: {}", irc_msg);
         match &irc_msg.command {
             Command::PRIVMSG(_channel, message) => {
-                println!("{:?}", parse::parse_message(message));
-                if message.starts_with(client.current_nickname()) {
-                    let pref = irc_msg.clone().prefix.unwrap();
-                    let response_target = irc_msg.response_target().unwrap();
-                    if message.contains("!quit") {
-                        client.send_quit(format!("Screw you guys, I'm going home")).expect("Message couldn't be sent.");
-                    } else if message.contains("!time") {
-                        client.send_privmsg(&response_target, format!("Current time: {}", time::now().to_local().rfc822())).expect("Message couldn't be sent.");
-                    } else if message.contains("!op") && pref.ends_with("kokx@kokx.org") {
-                        let modes = [irc::proto::Mode::plus(irc::proto::ChannelMode::Oper, Some("kokx"))];
-                        //let mes = spl(message);
-                        client.send_mode(&response_target, &modes).expect("Problem with making owner op");
-                    } else {
-                        client.send_privmsg(&response_target, "Ja?").expect("Message couldn't be sent.");
+                if let Some(parsed) = parse::parse_message(message) {
+                    if parsed.nick == client.current_nickname() {
+                        let pref = irc_msg.clone().prefix.unwrap();
+                        let response_target = irc_msg.response_target().unwrap();
+
+                        match parsed.command.as_ref() {
+                            "quit" => {
+                                client.send_quit(format!("Screw you guys, I'm going home"))
+                                    .expect("Message couldn't be sent.");
+                            },
+                            "time" => {
+                                client.send_privmsg(&response_target, format!("Current time: {}", time::now().to_local().rfc822()))
+                                    .expect("Message couldn't be sent.");
+                            },
+                            "op" => {
+                                let modes = [irc::proto::Mode::plus(irc::proto::ChannelMode::Oper, Some("kokx"))];
+                                client.send_mode(&response_target, &modes)
+                                    .expect("Problem with making owner op");
+                            },
+                            _ => {
+                                client.send_privmsg(&response_target, "Ja?").expect("Message couldn't be sent.");
+                            }
+                        }
                     }
                 }
             },
