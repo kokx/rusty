@@ -2,6 +2,7 @@ extern crate irc;
 //#[macro_use]
 extern crate futures;
 extern crate time;
+extern crate regex;
 
 use irc::client::prelude::*;
 
@@ -9,6 +10,8 @@ use tokio::timer::Interval;
 use futures::{stream, Stream};
 
 use std::time::Duration;
+
+mod parse;
 
 
 fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
@@ -23,9 +26,9 @@ fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
 
 fn pwnage_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()> {
     timestream()
-        .filter(|cur| cur.tm_hour == 0 && cur.tm_min == 0 && cur.tm_sec == 0)
+        .filter(|cur| cur.tm_hour == 0 && cur.tm_min == 16 && cur.tm_sec == 0)
         .for_each(move |_curtime| {
-            client.send_privmsg("PWNAGE", "Wake up!").expect("Message couldn't send");
+            client.send_notice("PWNAGE", "Wake up!").expect("Message couldn't send");
             client.send_privmsg("kokx", "Test Wake up!").expect("Message couldn't send");
             Ok(())
         })
@@ -53,6 +56,7 @@ fn main() {
         print!("Incoming: {}", irc_msg);
         match &irc_msg.command {
             Command::PRIVMSG(_channel, message) => {
+                println!("{:?}", parse::parse_message(message));
                 if message.starts_with(client.current_nickname()) {
                     let pref = irc_msg.clone().prefix.unwrap();
                     let response_target = irc_msg.response_target().unwrap();
@@ -62,6 +66,7 @@ fn main() {
                         client.send_privmsg(&response_target, format!("Current time: {}", time::now().to_local().rfc822())).expect("Message couldn't be sent.");
                     } else if message.contains("!op") && pref.ends_with("kokx@kokx.org") {
                         let modes = [irc::proto::Mode::plus(irc::proto::ChannelMode::Oper, Some("kokx"))];
+                        //let mes = spl(message);
                         client.send_mode(&response_target, &modes).expect("Problem with making owner op");
                     } else {
                         client.send_privmsg(&response_target, "Ja?").expect("Message couldn't be sent.");
