@@ -1,5 +1,7 @@
 use regex::Regex;
 
+/// Represents:
+/// <nick>:? <command> [<arg1> [<arg2> [<arg3> ...]]]
 #[derive(Debug)]
 pub struct ParsedMessage {
     pub nick: String,
@@ -7,8 +9,6 @@ pub struct ParsedMessage {
     pub args: Vec<String>
 }
 
-/// Represents:
-/// <nick>:? <command> [<arg1> [<arg2> [<arg3> ...]]]
 impl ParsedMessage {
     pub fn new(nick: String, command: String, args: Vec<String>) -> Self {
         ParsedMessage {
@@ -38,6 +38,7 @@ pub fn parse_message(message: &str) -> Option<ParsedMessage> {
     }
 }
 
+/// Store the exact command taken
 #[derive(Debug)]
 pub enum Command {
     QUIT,
@@ -45,6 +46,7 @@ pub enum Command {
     OP(Option<String>),
 }
 
+/// Command, and information about who called the command
 #[derive(Debug)]
 pub struct CommandMessage {
     pub nick: String,
@@ -59,13 +61,14 @@ fn get_command(msg: &ParsedMessage) -> Option<Command> {
             if let Some(nick) = msg.args.get(0) {
                 Some(Command::OP(Some(nick.to_string())))
             } else {
-                None
+                Some(Command::OP(None))
             }
         },
         _ => None
     }
 }
 
+/// Parse a message and gain information about the command
 pub fn parse_command(message: &str) -> Option<CommandMessage> {
     if let Some(msg) = parse_message(message) {
         if let Some(command) = get_command(&msg) {
