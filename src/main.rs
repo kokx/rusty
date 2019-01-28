@@ -26,9 +26,9 @@ fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
 
 fn pwnage_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()> {
     timestream()
-        .filter(|cur| cur.tm_hour == 0 && cur.tm_min == 16 && cur.tm_sec == 0)
+        .filter(|cur| cur.tm_hour == 8 && cur.tm_min == 39 && cur.tm_sec == 0)
         .for_each(move |_curtime| {
-            client.send_notice("PWNAGE", "Wake up!").expect("Message couldn't send");
+            client.send_privmsg("PWNAGE", "!nieuwedag").expect("Message couldn't send");
             client.send_privmsg("kokx", "Test Wake up!").expect("Message couldn't send");
             Ok(())
         })
@@ -43,6 +43,7 @@ fn pipo_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()>
         })
 }
 
+/// Main rusty method
 fn main() {
     let config = Config::load("irc.toml").unwrap();
     let mut reactor = IrcReactor::new().unwrap();

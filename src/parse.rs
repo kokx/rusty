@@ -37,3 +37,46 @@ pub fn parse_message(message: &str) -> Option<ParsedMessage> {
         None
     }
 }
+
+#[derive(Debug)]
+pub enum Command {
+    QUIT,
+    TIME,
+    OP(Option<String>),
+}
+
+#[derive(Debug)]
+pub struct CommandMessage {
+    pub nick: String,
+    pub command: Command
+}
+
+fn get_command(msg: &ParsedMessage) -> Option<Command> {
+    match msg.command.as_ref() {
+        "quit" => Some(Command::QUIT),
+        "time" => Some(Command::TIME),
+        "op" => {
+            if let Some(nick) = msg.args.get(0) {
+                Some(Command::OP(Some(nick.to_string())))
+            } else {
+                None
+            }
+        },
+        _ => None
+    }
+}
+
+pub fn parse_command(message: &str) -> Option<CommandMessage> {
+    if let Some(msg) = parse_message(message) {
+        if let Some(command) = get_command(&msg) {
+            Some(CommandMessage {
+                nick: msg.nick,
+                command
+            })
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
