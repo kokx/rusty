@@ -62,7 +62,15 @@ fn main() {
     reactor.inner_handle().spawn(pwnage_wakeup(client.clone()));
     reactor.inner_handle().spawn(pipo_wakeup(client.clone()));
 
-    reactor.register_client_with_handler(client, |client, irc_msg| {
+    let mut nickserv_pass = "".to_string();
+
+    if let Some(options) = &config.options {
+        if let Some(pass) = options.get("nickserv_password") {
+            nickserv_pass = pass.clone();
+        }
+    }
+
+    reactor.register_client_with_handler(client, move |client, irc_msg| {
         print!("{}", irc_msg);
         match &irc_msg.command {
             Command::PRIVMSG(_, message) => {
@@ -105,6 +113,16 @@ fn main() {
                     }
                 }
             },
+            Command::NOTICE(_, message) => {
+                if let Some(nick) = irc_msg.source_nickname() {
+                    if nick == "NickServ" && message.starts_with("This nickname is owned by someone else") {
+                        // TODO: authenticate with NickServ
+                        println!("{}", nickserv_pass);
+
+                        client.send_privmsg("NickServ", format!("IDENTIFY {}", nickserv_pass));
+                    }
+                }
+            }
             _ => ()
         }
         Ok(())
