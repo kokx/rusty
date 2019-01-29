@@ -2,12 +2,16 @@ extern crate irc;
 extern crate futures;
 extern crate time;
 extern crate regex;
+#[macro_use]
+extern crate lazy_static;
 
 use irc::client::prelude::*;
 use tokio::timer::Interval;
 use futures::{stream, Stream};
 use std::time::Duration;
 mod parse;
+use core::ops::Add;
+use regex::Regex;
 
 
 fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
@@ -15,17 +19,18 @@ fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
         .map_err(|_e| ());
 
     stream::unfold((), |_| {
-        Some(Ok((time::now().to_local(), ())))
+        let time_utc = time::now_utc();
+        let time_utc = time_utc.add(time::Duration::milliseconds(800));
+        Some(Ok((time_utc.to_local(), ())))
     }).zip(interval)
         .map(|(cur, _)| cur)
 }
 
 fn pwnage_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()> {
     timestream()
-        .filter(|cur| cur.tm_hour == 8 && cur.tm_min == 39 && cur.tm_sec == 0)
+        .filter(|cur| cur.tm_hour == 8 && cur.tm_min == 0 && cur.tm_sec == 0)
         .for_each(move |_curtime| {
-            client.send_privmsg("PWNAGE", "!nieuwedag").expect("Message couldn't send");
-            client.send_privmsg("kokx", "Test Wake up!").expect("Message couldn't send");
+            client.send_privmsg("PWNAGE", "Wake up").expect("Message couldn't send");
             Ok(())
         })
 }
@@ -37,6 +42,14 @@ fn pipo_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()>
             client.send_privmsg("Pipo", "Ik ben niet Pipo").expect("Message couldn't send");
             Ok(())
         })
+}
+
+fn is_admin(prefix: &str) -> bool {
+    lazy_static! {
+        static ref RE: Regex = Regex::new(r"~kokx@kokx\.org$").unwrap();
+    }
+
+    RE.is_match(prefix)
 }
 
 /// Main rusty method
@@ -56,30 +69,37 @@ fn main() {
                 if let Some(command) = parse::parse_command(&message) {
                     // verify the nickname
                     if command.nick == client.current_nickname() {
-                        //let pref = irc_msg.clone().prefix.unwrap();
-                        let source_nick = irc_msg.source_nickname().unwrap();
-                        let response_target = irc_msg.response_target().unwrap();
+                        if let Some(pref) = &irc_msg.prefix {
+                            let source_nick = irc_msg.source_nickname().unwrap();
+                            let response_target = irc_msg.response_target().unwrap();
 
-                        match command.command {
-                            parse::Command::QUIT => {
-                                client.send_quit(format!("Screw you guys, I'm going home"))
-                                    .expect("Message couldn't be sent.");
-                            },
-                            parse::Command::TIME => {
-                                let current_time = time::now().to_local();
-                                let response_msg = format!("Current time: {}", current_time.rfc822());
-                                client.send_privmsg(&response_target, response_msg)
-                                    .expect("Message couldn't be sent.");
-                            },
-                            parse::Command::OP(None) => {
-                                let modes = [irc::proto::Mode::plus(irc::proto::ChannelMode::Oper, Some(source_nick))];
-                                client.send_mode(&response_target, &modes)
-                                    .expect("Problem with making owner op");
-                            },
-                            parse::Command::OP(Some(nick)) => {
-                                let modes = [irc::proto::Mode::plus(irc::proto::ChannelMode::Oper, Some(&nick))];
-                                client.send_mode(&response_target, &modes)
-                                    .expect("Problem with making owner op");
+                            match command.command {
+                                parse::Command::QUIT => {
+                                    if is_admin(pref) {
+                                        client.send_quit(format!("Screw you guys, I'm going home"))
+                                            .expect("Message couldn't be sent.");
+                                    }
+                                },
+                                parse::Command::TIME => {
+                                    let current_time = time::now().to_local();
+                                    let response_msg = format!("Current time: {}", current_time.rfc822());
+                                    client.send_privmsg(&response_target, response_msg)
+                                        .expect("Message couldn't be sent.");
+                                },
+                                parse::Command::OP(None) => {
+                                    if is_admin(pref) {
+                                        let modes = [irc::proto::Mode::plus(irc::proto::ChannelMode::Oper, Some(source_nick))];
+                                        client.send_mode(&response_target, &modes)
+                                            .expect("Problem with making owner op");
+                                    }
+                                },
+                                parse::Command::OP(Some(nick)) => {
+                                    if is_admin(pref) {
+                                        let modes = [irc::proto::Mode::plus(irc::proto::ChannelMode::Oper, Some(&nick))];
+                                        client.send_mode(&response_target, &modes)
+                                            .expect("Problem with making owner op");
+                                    }
+                                }
                             }
                         }
                     }
