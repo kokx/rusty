@@ -65,7 +65,7 @@ fn main() {
     reactor.register_client_with_handler(client, |client, irc_msg| {
         print!("{}", irc_msg);
         match &irc_msg.command {
-            Command::PRIVMSG(_channel, message) => {
+            Command::PRIVMSG(_, message) => {
                 if let Some(command) = parse::parse_command(&message) {
                     // verify the nickname
                     if command.nick == client.current_nickname() {
