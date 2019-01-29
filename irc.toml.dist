@@ -1,4 +1,6 @@
 nickname = "testrusty"
+alt_nicks = ["testrusty`", "testrusty|", "testrusty_"]
+username = "rusty"
 server = "irc.gewis.nl"
 channels = ["#rusty"]
 user_info = "Don't annoy me."

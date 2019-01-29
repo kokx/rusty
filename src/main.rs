@@ -62,7 +62,9 @@ fn main() {
     reactor.inner_handle().spawn(pwnage_wakeup(client.clone()));
     reactor.inner_handle().spawn(pipo_wakeup(client.clone()));
 
+    let mut got_nick = false;
     let mut nickserv_pass = "".to_string();
+    let orig_nickname = config.nickname.unwrap_or("".to_string());
 
     if let Some(options) = &config.options {
         if let Some(pass) = options.get("nickserv_password") {
@@ -115,16 +117,26 @@ fn main() {
             },
             Command::NOTICE(_, message) => {
                 if let Some(nick) = irc_msg.source_nickname() {
-                    if nick == "NickServ" && message.starts_with("This nickname is owned by someone else") {
-                        // TODO: authenticate with NickServ
-                        println!("{}", nickserv_pass);
+                    if orig_nickname == client.current_nickname() && nick == "NickServ" && message.starts_with("This nickname is owned by someone else") {
 
-                        client.send_privmsg("NickServ", format!("IDENTIFY {}", nickserv_pass));
+                        client.send_privmsg("NickServ", format!("IDENTIFY {}", nickserv_pass))
+                            .expect("Problem with identify");
+                        got_nick = true;
                     }
                 }
-            }
+            },
             _ => ()
         }
+
+        // verify our nickname
+        if !got_nick && orig_nickname != client.current_nickname() {
+            client.send_privmsg("NickServ", format!("GHOST {} {}", orig_nickname, nickserv_pass))
+                .expect("Problem with ghosting");
+            client.send(Command::NICK(orig_nickname.to_string()))
+                .expect("Problem with renaming");
+            got_nick = true;
+        }
+
         Ok(())
     });
 
