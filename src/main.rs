@@ -28,7 +28,7 @@ fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
 
 fn pwnage_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()> {
     timestream()
-        .filter(|cur| cur.tm_hour == 8 && cur.tm_min == 0 && cur.tm_sec == 0)
+        .filter(|cur| cur.tm_hour == 8 && cur.tm_min == 0 && (cur.tm_sec == 0 || cur.tm_sec == 1))
         .for_each(move |_curtime| {
             client.send_privmsg("PWNAGE", "Wake up").expect("Message couldn't send");
             Ok(())
@@ -116,6 +116,7 @@ fn main() {
                 }
             },
             Command::NOTICE(_, message) => {
+                // check if this notice is sent by NickServ and is about nick ownership
                 if let Some(nick) = irc_msg.source_nickname() {
                     if orig_nickname == client.current_nickname() && nick == "NickServ" && message.starts_with("This nickname is owned by someone else") {
 
@@ -128,7 +129,7 @@ fn main() {
             _ => ()
         }
 
-        // verify our nickname
+        // verify our nickname, and ghost if we do not have it
         if !got_nick && orig_nickname != client.current_nickname() {
             client.send_privmsg("NickServ", format!("GHOST {} {}", orig_nickname, nickserv_pass))
                 .expect("Problem with ghosting");

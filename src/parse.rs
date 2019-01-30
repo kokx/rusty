@@ -13,7 +13,7 @@ impl ParsedMessage {
     /// Split a message into a ParsedMessage
     /// <nick>:? <command> [<arg1> [<arg2> [<arg3> ...]]]
     fn from_string(message: &str) -> Option<ParsedMessage> {
-        let re = Regex::new(r"^([0-9a-zA-Z]+):? ([0-9a-zA-Z]+)( .*)?$").unwrap();
+        let re = Regex::new(r"^([0-9a-zA-Z_-]+):? ([0-9a-zA-Z]+)( .*)?$").unwrap();
         let cap = re.captures(message);
 
         if let Some(cap) = cap {
