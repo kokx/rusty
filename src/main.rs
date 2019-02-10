@@ -22,7 +22,7 @@ fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
 
     stream::unfold((), |_| {
         let time_utc = time::now_utc();
-        let time_utc = time_utc.add(time::Duration::milliseconds(800));
+        let time_utc = time_utc.add(time::Duration::milliseconds(900));
         Some(Ok((time_utc.to_local(), ())))
     }).zip(interval)
         .map(|(cur, _)| cur)
@@ -31,9 +31,8 @@ fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
 fn pwnage_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()> {
     timestream()
         .filter(|cur| cur.tm_hour == 0 && cur.tm_min == 0 && (cur.tm_sec == 0 || cur.tm_sec == 1))
-        .for_each(move |cur| {
+        .for_each(move |_cur| {
             client.send_privmsg("PWNAGE", "Wake up").expect("Message couldn't send");
-            println!("Waking up PWNAGE at {}", cur.rfc822());
             Ok(())
         })
 }
