@@ -4,7 +4,9 @@ extern crate time;
 extern crate regex;
 #[macro_use]
 extern crate lazy_static;
+extern crate rand;
 
+use rand::prelude::*;
 use irc::client::prelude::*;
 use tokio::timer::Interval;
 use futures::{stream, Stream};
@@ -28,16 +30,19 @@ fn timestream() -> impl Stream<Item = time::Tm, Error = ()> {
 
 fn pwnage_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()> {
     timestream()
-        .filter(|cur| cur.tm_hour == 8 && cur.tm_min == 0 && (cur.tm_sec == 0 || cur.tm_sec == 1))
-        .for_each(move |_curtime| {
+        .filter(|cur| cur.tm_hour == 0 && cur.tm_min == 0 && (cur.tm_sec == 0 || cur.tm_sec == 1))
+        .for_each(move |cur| {
             client.send_privmsg("PWNAGE", "Wake up").expect("Message couldn't send");
+            println!("Waking up PWNAGE at {}", cur.rfc822());
             Ok(())
         })
 }
 
 fn pipo_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()> {
+    let mut rng = rand::thread_rng();
     timestream()
-        .filter(|cur| (cur.tm_hour == 10 || cur.tm_hour == 12 || cur.tm_hour == 14 || cur.tm_hour == 16) && cur.tm_min == 0 && cur.tm_sec == 0)
+        .filter(|cur| (cur.tm_hour == 10 || cur.tm_hour == 13 || cur.tm_hour == 16) && cur.tm_min == 0 && cur.tm_sec == 0)
+        .filter(move |_curtime| rng.gen_range(0, 42) < 32)
         .for_each(move |_curtime| {
             client.send_privmsg("Pipo", "Ik ben niet Pipo").expect("Message couldn't send");
             Ok(())
