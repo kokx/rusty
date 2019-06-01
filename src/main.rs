@@ -41,7 +41,7 @@ fn pipo_wakeup(client: IrcClient) -> impl futures::Future<Item = (), Error = ()>
     let mut rng = rand::thread_rng();
     timestream()
         .filter(|cur| (cur.tm_hour == 10 || cur.tm_hour == 13 || cur.tm_hour == 16) && cur.tm_min == 0 && cur.tm_sec == 0)
-        .filter(move |_curtime| rng.gen_range(0, 42) < 32)
+        .filter(move |_curtime| rng.gen_range(0, 1337) < 42)
         .for_each(move |_curtime| {
             client.send_privmsg("Pipo", "Ik ben niet Pipo").expect("Message couldn't send");
             Ok(())
